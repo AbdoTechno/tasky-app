@@ -65,7 +65,8 @@ class WelcomeScreen extends StatelessWidget {
                     height: AppSizes.h200,
                   ),
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppSizes.w16),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: AppSizes.w16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -87,7 +88,8 @@ class WelcomeScreen extends StatelessWidget {
                           onPressed: () async {
                             if (_key.currentState?.validate() ?? false) {
                               await PreferencesManager().setString(
-                                  StorageKey.username, controller.value.text);
+                                  StorageKey.username,
+                                  controller.value.text);
 
                               Navigator.pushReplacement(
                                 context,
@@ -100,7 +102,8 @@ class WelcomeScreen extends StatelessWidget {
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text("Please Enter Your Full Name"),
+                                  content:
+                                      Text("Please Enter Your Full Name"),
                                 ),
                               );
                             }

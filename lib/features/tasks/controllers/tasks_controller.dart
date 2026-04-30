@@ -1,8 +1,5 @@
-import 'dart:convert';
-
 import 'package:flutter/cupertino.dart';
-import 'package:tasky/core/constants/storage_key.dart';
-import 'package:tasky/core/services/preferences_manager.dart';
+import 'package:tasky/core/services/hive_storage_manager.dart';
 import 'package:tasky/models/task_model.dart';
 
 class TasksController extends ChangeNotifier {
@@ -21,43 +18,35 @@ class TasksController extends ChangeNotifier {
     _loadTasks();
   }
 
-  void _loadTasks() {
+  void _loadTasks() async {
     isLoading = true;
-
-    final finalTask = PreferencesManager().getString(StorageKey.tasks);
-    if (finalTask != null) {
-      final taskAfterDecode = jsonDecode(finalTask) as List<dynamic>;
-
-      tasks = taskAfterDecode.map((element) => TaskModel.fromJson(element)).toList();
-
-      _loadData();
-
-      _calculatePercent();
-    }
-
+    notifyListeners();
+    tasks = await HiveStorageManager().getTasks();
+    _loadData();
+    _calculatePercent();
     isLoading = false;
-
     notifyListeners();
   }
 
   void _loadData() {
     todoTasks = tasks.where((element) => !element.isDone).toList();
     completeTasks = tasks.where((element) => element.isDone).toList();
-    highPriorityTasks = tasks.where((element) => element.isHighPriority).toList();
+    highPriorityTasks =
+        tasks.where((element) => element.isHighPriority).toList();
     highPriorityTasks = highPriorityTasks.reversed.toList();
   }
 
   void doneTask(bool? value, int id) async {
     final index = tasks.indexWhere((e) => e.id == id);
-    tasks[index].isDone = value ?? false;
+    if (index != -1) {
+      tasks[index].isDone = value ?? false;
 
-    _loadData();
-    _calculatePercent();
+      _loadData();
+      _calculatePercent();
 
-    final updatedTask = tasks.map((element) => element.toJson()).toList();
-    PreferencesManager().setString(StorageKey.tasks, jsonEncode(updatedTask));
-
-    notifyListeners();
+      await HiveStorageManager().saveTasks(tasks);
+      notifyListeners();
+    }
   }
 
   deleteTask(int? id) async {
@@ -68,9 +57,7 @@ class TasksController extends ChangeNotifier {
     _loadData();
     _calculatePercent();
 
-    final updatedTask = tasks.map((element) => element.toJson()).toList();
-    PreferencesManager().setString(StorageKey.tasks, jsonEncode(updatedTask));
-
+    await HiveStorageManager().saveTasks(tasks);
     notifyListeners();
   }
 
@@ -78,5 +65,20 @@ class TasksController extends ChangeNotifier {
     totalTask = tasks.length;
     totalDoneTasks = tasks.where((e) => e.isDone).length;
     percent = totalTask == 0 ? 0 : totalDoneTasks / totalTask;
+  }
+
+  Future<void> refresh() async {
+    _loadTasks();
+  }
+
+  Future<void> clearAllTasks() async {
+    tasks.clear();
+    completeTasks.clear();
+    todoTasks.clear();
+    highPriorityTasks.clear();
+    totalTask = 0;
+    totalDoneTasks = 0;
+    percent = 0;
+    notifyListeners();
   }
 }

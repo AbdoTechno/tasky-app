@@ -1,9 +1,5 @@
-
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:tasky/core/constants/storage_key.dart';
-import 'package:tasky/core/services/preferences_manager.dart';
+import 'package:tasky/core/services/hive_storage_manager.dart';
 import 'package:tasky/models/task_model.dart';
 
 class AddTaskController extends ChangeNotifier {
@@ -11,32 +7,25 @@ class AddTaskController extends ChangeNotifier {
 
   final TextEditingController taskNameController = TextEditingController();
 
-  final TextEditingController taskDescriptionController = TextEditingController();
+  final TextEditingController taskDescriptionController =
+      TextEditingController();
 
   bool isHighPriority = true;
 
-  void addTask(BuildContext context) async{
+  void addTask(BuildContext context) async {
     if (key.currentState?.validate() ?? false) {
-      final taskJson = PreferencesManager().getString(StorageKey.tasks);
+      final tasks = await HiveStorageManager().getTasks();
 
-      List<dynamic> listTasks = [];
-
-      if (taskJson != null) {
-        listTasks = jsonDecode(taskJson);
-      }
-
-      // listTasks.length = 1 -> 1 + 1
       TaskModel model = TaskModel(
-        id: listTasks.length + 1,
+        id: tasks.length + 1,
         taskName: taskNameController.text,
         taskDescription: taskDescriptionController.text,
         isHighPriority: isHighPriority,
       );
 
-      listTasks.add(model.toJson());
+      tasks.add(model);
 
-      final taskEncode = jsonEncode(listTasks);
-      await PreferencesManager().setString(StorageKey.tasks, taskEncode);
+      await HiveStorageManager().saveTasks(tasks);
 
       Navigator.of(context).pop(true);
     }

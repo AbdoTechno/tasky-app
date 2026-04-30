@@ -1,14 +1,18 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:tasky/core/constants/app_sizes.dart';
 import 'package:tasky/core/constants/storage_key.dart';
+import 'package:tasky/core/services/hive_storage_manager.dart';
 import 'package:tasky/core/services/preferences_manager.dart';
 import 'package:tasky/core/theme/theme_controller.dart';
 import 'package:tasky/core/widgets/custom_svg_picture.dart';
 import 'package:tasky/features/profile/user_details_screen.dart';
+import 'package:tasky/features/tasks/controllers/tasks_controller.dart';
 import 'package:tasky/features/welcome/welcome_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -132,17 +136,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                   contentPadding: EdgeInsets.zero,
                   title: Text('User Details'),
-                  leading:
-                      CustomSvgPicture(path: 'assets/images/profile_icon.svg'),
-                  trailing:
-                      CustomSvgPicture(path: 'assets/images/arrow_right.svg'),
+                  leading: CustomSvgPicture(
+                      path: 'assets/images/profile_icon.svg'),
+                  trailing: CustomSvgPicture(
+                      path: 'assets/images/arrow_right.svg'),
                 ),
                 Divider(thickness: 1),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text('Dark Mode'),
-                  leading:
-                      CustomSvgPicture(path: 'assets/images/dark_icon.svg'),
+                  leading: CustomSvgPicture(
+                      path: 'assets/images/dark_icon.svg'),
                   trailing: ValueListenableBuilder(
                     valueListenable: ThemeController.themeNotifier,
                     builder: (BuildContext context, value, Widget? child) {
@@ -159,8 +163,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ListTile(
                   onTap: () async {
                     PreferencesManager().remove(StorageKey.username);
-                    PreferencesManager().remove(StorageKey.motivationQuote);
+                    PreferencesManager()
+                        .remove(StorageKey.motivationQuote);
                     PreferencesManager().remove(StorageKey.tasks);
+                    HiveStorageManager().clearTasks();
+                    context.read<TasksController>().clearAllTasks();
+
                     Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(
@@ -173,10 +181,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                   contentPadding: EdgeInsets.zero,
                   title: Text('Log Out'),
-                  leading:
-                      CustomSvgPicture(path: 'assets/images/logout_icon.svg'),
-                  trailing:
-                      CustomSvgPicture(path: 'assets/images/arrow_right.svg'),
+                  leading: CustomSvgPicture(
+                      path: 'assets/images/logout_icon.svg'),
+                  trailing: CustomSvgPicture(
+                      path: 'assets/images/arrow_right.svg'),
                 ),
               ],
             ),
@@ -185,12 +193,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _saveImage(XFile file) async {
     final appDir = await getApplicationDocumentsDirectory();
-    final newFile = await File(file.path).copy('${appDir.path}/${file.name}');
+    final newFile =
+        await File(file.path).copy('${appDir.path}/${file.name}');
     PreferencesManager().setString(StorageKey.userImage, newFile.path);
   }
 }
 
-void showImageSourceDialog(BuildContext context, Function(XFile) selectedFile) {
+void showImageSourceDialog(
+    BuildContext context, Function(XFile) selectedFile) {
   showDialog(
     context: context,
     builder: (BuildContext context) {
@@ -202,11 +212,25 @@ void showImageSourceDialog(BuildContext context, Function(XFile) selectedFile) {
         children: [
           SimpleDialogOption(
             onPressed: () async {
-              Navigator.pop(context);
-              XFile? image =
-                  await ImagePicker().pickImage(source: ImageSource.camera);
-              if (image != null) {
-                selectedFile(image);
+              try {
+                XFile? image = await ImagePicker()
+                    .pickImage(source: ImageSource.camera);
+
+                if (!context.mounted) return;
+
+                Navigator.pop(context);
+
+                if (image != null) {
+                  selectedFile(image);
+                }
+              } on Exception catch (_) {
+                if (!context.mounted) return;
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Camera not available"),
+                  ),
+                );
               }
             },
             padding: EdgeInsets.all(AppSizes.pw16),
@@ -221,8 +245,8 @@ void showImageSourceDialog(BuildContext context, Function(XFile) selectedFile) {
           SimpleDialogOption(
             onPressed: () async {
               Navigator.pop(context);
-              XFile? image =
-                  await ImagePicker().pickImage(source: ImageSource.gallery);
+              XFile? image = await ImagePicker()
+                  .pickImage(source: ImageSource.gallery);
               if (image != null) {
                 selectedFile(image);
               }

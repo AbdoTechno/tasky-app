@@ -74,7 +74,8 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                 onPressed: () async {
                   if (_key.currentState!.validate()) {
                     await PreferencesManager().setString(
-                        StorageKey.username, userNameController.value.text);
+                        StorageKey.username,
+                        userNameController.value.text);
                     await PreferencesManager().setString(
                         StorageKey.motivationQuote,
                         motivationQuoteController.value.text);
@@ -84,8 +85,9 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                 },
                 child: Text('Save Changes'),
               ),
-
-              SizedBox(height: AppSizes.ph24,),
+              SizedBox(
+                height: AppSizes.ph24,
+              ),
             ],
           ),
         ),

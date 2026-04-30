@@ -1,10 +1,7 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:tasky/core/constants/app_sizes.dart';
-import 'package:tasky/core/constants/storage_key.dart';
 import 'package:tasky/core/enums/task_item_actions_enum.dart';
-import 'package:tasky/core/services/preferences_manager.dart';
+import 'package:tasky/core/services/hive_storage_manager.dart';
 import 'package:tasky/core/theme/theme_controller.dart';
 import 'package:tasky/core/widgets/custom_check_box.dart';
 import 'package:tasky/core/widgets/custom_text_form_field.dart';
@@ -34,8 +31,9 @@ class TaskItemWidget extends StatelessWidget {
         color: Theme.of(context).colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(AppSizes.r20),
         border: Border.all(
-          color:
-              ThemeController.isDark() ? Colors.transparent : Color(0xFFD1DAD6),
+          color: ThemeController.isDark()
+              ? Colors.transparent
+              : Color(0xFFD1DAD6),
         ),
       ),
       child: Row(
@@ -146,8 +144,8 @@ class TaskItemWidget extends StatelessWidget {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       builder: (context) {
         return StatefulBuilder(
-          builder:
-              (BuildContext context, void Function(void Function()) setState) {
+          builder: (BuildContext context,
+              void Function(void Function()) setState) {
             return Padding(
               padding: EdgeInsets.symmetric(
                   horizontal: AppSizes.pw16, vertical: AppSizes.ph8),
@@ -181,7 +179,8 @@ class TaskItemWidget extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('High Priority',
-                            style: Theme.of(context).textTheme.titleMedium),
+                            style:
+                                Theme.of(context).textTheme.titleMedium),
                         Switch(
                           value: isHighPriority,
                           onChanged: (bool value) {
@@ -195,37 +194,31 @@ class TaskItemWidget extends StatelessWidget {
                     Spacer(),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        fixedSize: Size(MediaQuery.of(context).size.width, 40),
+                        fixedSize:
+                            Size(MediaQuery.of(context).size.width, 40),
                       ),
                       onPressed: () async {
                         if (key.currentState?.validate() ?? false) {
-                          final taskJson =
-                              PreferencesManager().getString(StorageKey.tasks);
-
-                          List<dynamic> listTasks = [];
-
-                          if (taskJson != null) {
-                            listTasks = jsonDecode(taskJson);
-                          }
+                          final tasks =
+                              await HiveStorageManager().getTasks();
 
                           TaskModel newModel = TaskModel(
                             id: model.id,
                             taskName: taskNameController.text,
-                            taskDescription: taskDescriptionController.text,
+                            taskDescription:
+                                taskDescriptionController.text,
                             isHighPriority: isHighPriority,
                             isDone: model.isDone,
                           );
 
-                          final item = listTasks.firstWhere(
-                            (e) => e['id'] == model.id,
+                          final int index = tasks.indexWhere(
+                            (e) => e.id == model.id,
                           );
 
-                          final int index = listTasks.indexOf(item);
-                          listTasks[index] = newModel;
-
-                          final taskEncode = jsonEncode(listTasks);
-                          await PreferencesManager()
-                              .setString(StorageKey.tasks, taskEncode);
+                          if (index != -1) {
+                            tasks[index] = newModel;
+                            await HiveStorageManager().saveTasks(tasks);
+                          }
 
                           Navigator.of(context).pop(true);
                         }

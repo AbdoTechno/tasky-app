@@ -3,7 +3,8 @@ import 'package:tasky/core/constants/storage_key.dart';
 import 'package:tasky/core/services/preferences_manager.dart';
 
 class ThemeController {
-  static final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
+  static final ValueNotifier<ThemeMode> themeNotifier =
+      ValueNotifier(ThemeMode.dark);
 
   init() {
     bool result = PreferencesManager().getBool(StorageKey.theme) ?? true;
